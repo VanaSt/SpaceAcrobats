@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>project</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+
+			body {
+				color: #fff;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				background-color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#container {
+				position: absolute;
+			}
+			
+			a {
+				color: #ff0000;
+			}
+			.ac {  /* prevent dat-gui from being selected */
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+		
+			.no-pointer-events {
+				pointer-events: none;
+			}
+			
+			.control-disabled {
+				color: #888;
+				text-decoration: line-through;
+			}
+			
+			#color-gui-container {
+			  position: absolute;
+			  top: 0px;
+			  left: 20px;
+			  z-index: 10;
+			}
+			
+			#wasd {
+				position: absolute;
+				bottom: 30px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+				color: #cd8066;
+				font-size: 18px;
+				transition: all ease-in-out 1.5s;
+			}
+			
+			#wasd:hover {
+			  color: #f2ca50;
+			  font-size: 22px;
+			}
+				
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+		<div id="color-gui-container"></div>
+		<div id="wasd">Move around with wasd</br>Move the Saturn with arrows</div>
+
+		<script src="js/three.js"></script>
+
+		<script src="js/WebGL.js"></script>
+		<script src="js/GLTFLoader.js"></script>
+		<script src="js/dat.gui.min.js"></script>
+        <script src="js/OrbitControls.js"></script>
+		<script src="js/Reflector.js"></script>
+
+
+
+		<script>
+
+			if ( WEBGL.isWebGLAvailable() === false ) {
+
+				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
+
+			}
+			
+			
+			// Variables declaration
+
+			var scene, container, renderer, camera, controls;
+			var loadBackground, background;
+			var model, mixer, clock;
+
+			var crossFadeControls = [];
+
+			var deksiAction, aristeroAction, balanceAction, podiAction;
+			var deksiWeight, balanceWeight, podiWeight, aristeroWeight;
+			var actions, settings;
+			
+			var loader, loader2, loader3, loader4;
+	
+			var ambientLight, directionalLight, light1, light2, light3, light4, light5, light6;
+			var intensity = 2.5;
+			var distance = 100;
+			var decay = 2.0;
+			var c1 = 0xff0040, c2 = 0x0040ff, c3 = 0x80ff80, c4 = 0xffaa00, c5 = 0x00ffaa, c6 = 0xff1100;
+			var sphere;
+            
+			var guiControls, gui, customContainer
+			var panel, folder1, folder2
+			
+			var keyboard = {};
+			var player = { height:1.8, speed:0.2, turnSpeed:Math.PI*0.02 };
+			
+			var floor, floormaterial, floormesh, geometryMirror, groundMirror;
+			var selected;
+			
+			var geometry, material, smallSphere;
+			var time, timer, d;
+			
+			var Saturn, ellipses, speedSaturn = 0.3;
+			
+			
+			init();
+
+
+			function init() {
+
+				container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 1000 );
+				camera.position.set(0, 10, 50 );
+				
+
+				clock = new THREE.Clock();
+
+				scene = new THREE.Scene();
+		
+				loadBackground = new THREE.TextureLoader();
+				background = loadBackground.load('resources/sky.jpg');
+				scene.background = background
+
+
+
+				// Lights
+				
+				ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+				ambientLight.position.set(0,10,0);
+				ambientLight.intensity = 0.5;
+				scene.add(ambientLight);
+
+				
+				directionalLight = new THREE.DirectionalLight(0xffffff, .9);
+				directionalLight.position.set(100, 50, 100);
+				directionalLight.castShadow = true;
+				directionalLight.shadow.camera.left = -200;
+				directionalLight.shadow.camera.right = 200;
+				directionalLight.shadow.camera.top = 200;
+				directionalLight.shadow.camera.bottom = -200;
+				directionalLight.shadow.camera.near = 1;
+				directionalLight.shadow.camera.far = 1000;
+				directionalLight.shadow.mapSize.width = 2048;
+				directionalLight.shadow.mapSize.height = 2048;
+				scene.add(directionalLight);
+
+
+
+				// Floor lights
+
+				sphere = new THREE.SphereBufferGeometry( 0.25, 16, 8 );
+
+				light1 = new THREE.PointLight( c1, intensity, distance, decay );
+				light1.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c1 } ) ) );
+				scene.add( light1 );
+
+				light2 = new THREE.PointLight( c2, intensity, distance, decay );
+				light2.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c2 } ) ) );
+				scene.add( light2 );
+
+				light3 = new THREE.PointLight( c3, intensity, distance, decay );
+				light3.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c3 } ) ) );
+				scene.add( light3 );
+
+				light4 = new THREE.PointLight( c4, intensity, distance, decay );
+				light4.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c4 } ) ) );
+				scene.add( light4 );
+
+				light5 = new THREE.PointLight( c5, intensity, distance, decay );
+				light5.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c5 } ) ) );
+				scene.add( light5 );
+
+				light6 = new THREE.PointLight( c6, intensity, distance, decay );
+				light6.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: c6 } ) ) );
+				scene.add( light6 );
+
+
+
+				// Floor
+				
+                floor = new THREE.PlaneGeometry(100, 100);
+				floormaterial = new THREE.MeshPhongMaterial({color:0x1b1b37});
+				floormesh = new THREE.Mesh(floor, floormaterial);
+				floormesh.rotateX(-Math.PI/2);
+				floormesh.position.y = -0.5;
+				floormesh.receiveShadow = true;
+				floormesh.castShadow = true;
+				scene.add(floormesh);
+				
+				selected = floormesh; //for gui color
+				
+				
+				
+				// Reflectors/mirrors
+
+				geometryMirror = new THREE.CircleBufferGeometry( 20, 64 );
+				groundMirror = new THREE.Reflector( geometryMirror, {
+					clipBias: 0.003,
+					textureWidth: window.innerWidth * window.devicePixelRatio,
+					textureHeight: window.innerHeight * window.devicePixelRatio,
+					color: 0x777777,
+					recursion: 1
+				} );
+				groundMirror.position.y = 0;
+				groundMirror.rotateX( - Math.PI / 2 );
+				scene.add( groundMirror );
+				
+				
+	
+				// Sphere
+				
+				geometry = new THREE.IcosahedronBufferGeometry( 0.5, 0 );
+				material = new THREE.MeshPhongMaterial( { color: 0xff0000, emissive: 0x333333, flatShading: true } );
+				smallSphere = new THREE.Mesh( geometry, material );
+				scene.add( smallSphere );
+		
+
+			
+				// Add Saturn
+				
+				Saturn = createPlanet(15);
+				Saturn.position.z = -100;
+				Saturn.position.x = -60;
+				Saturn.position.y = 30;
+				Saturn.scale.set(1.5, 1.5, 1.5);
+				Saturn.rotation.z = Math.PI / 2;
+				Saturn.rotation.y = 0.3;
+				Saturn.rotation.x = 1.5;
+				scene.add(Saturn);
+
+
+
+				// Add ellipses
+				
+				ellipses = createEllipses(30);
+				Saturn.add(ellipses);
+				
+				
+				
+				// Add models
+				
+				// Load acrobat on the rope
+				
+				loader = new THREE.GLTFLoader();
+				loader.load( './models/man_moves.gltf', function ( gltf ) {
+
+					model = gltf.scene;
+					model.position.set( 0, 11.7 , 1 );
+					scene.add( model );
+
+					model.traverse( function ( child ) {
+                        
+						if ( child.isSkinnedMesh ) child.castShadow = true;
+
+					} );
+
+
+					createPanel();
+
+					var animations = gltf.animations;
+
+					mixer = new THREE.AnimationMixer( model );
+
+					deksiAction = mixer.clipAction( animations[ 0 ] );
+					balanceAction = mixer.clipAction( animations[ 3 ] );
+					podiAction = mixer.clipAction( animations[ 1 ] );
+					aristeroAction = mixer.clipAction( animations[ 2 ] );
+					
+
+					actions = [ deksiAction, balanceAction, podiAction, aristeroAction ];
+
+					activateAllActions();
+
+					animate();
+
+				} );
+				
+				
+				// Load woman
+				
+				loader2 = new THREE.GLTFLoader();
+				loader2.load( './models/woman_moves2.gltf', function ( gltf ) {
+				model2 = gltf.scene;
+				
+                    model2.position.set( -10, -1, -2.4 );
+					model2.rotation.set(0,-5, 0);
+					scene.add( model2 );
+                    model2.traverse( function ( child ) {
+					if ( child.isSkinnedMesh ) child.castShadow = true;
+
+					} );
+
+				} );
+				
+				
+				// Load man
+				
+                loader3 = new THREE.GLTFLoader();
+				loader3.load( './models/man2_moves2.gltf', function ( gltf ) {
+				model3 = gltf.scene;
+                    model3.position.set( 8,5.6, 0.6 );
+					model3.rotation.set(0,5, 0); 
+					scene.add( model3 );
+                    model3.traverse( function ( child ) {
+					if ( child.isSkinnedMesh ) child.castShadow = true;
+
+					} );
+                  } );
+				  
+				  
+				// Load rope
+				
+				loader4 = new THREE.GLTFLoader();
+				loader4.load( './models/rope2.gltf', function ( gltf ) {
+				model4 = gltf.scene;
+				
+                    model4.position.set( -2, 2.7 , 0 );
+					model4.rotation.set(0,0, 0.03);
+					scene.add( model4 );
+                    model4.traverse( function ( child ) {
+					if ( child.isSkinnedMesh ) child.castShadow = true;
+
+					} );
+
+				} );
+			 
+			 
+				// Render 
+				
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.gammaOutput = true;
+				renderer.gammaFactor = 2.2;
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap; //////////////
+				
+				container.appendChild( renderer.domElement );
+				
+				
+				window.addEventListener('keydown', keyDown);
+				window.addEventListener('keyup', keyUp);
+				window.addEventListener('keydown', keyboard, false); 
+				window.addEventListener( 'resize', onWindowResize, false );
+				
+				
+				// Controls
+				
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.enablePan = false;
+				controls.minDistance = 5;
+				controls.maxDistance = 150;
+
+			}
+			
+			
+			
+			// Create planet
+			
+			function createPlanet(size) {
+				var geometry = new THREE.SphereGeometry(size, 32, 32);
+				var material = new THREE.MeshPhongMaterial({
+					color: "#3F3D3D",
+					emissive: "#05001B",
+					specular: "#111111",
+					shininess: 10,
+					wireframe: false
+				});
+				var planet = new THREE.Mesh(geometry, material);
+
+				return planet;
+			}
+
+
+
+			// Create ellipses
+			
+			function createEllipses(amount) {
+				var ellipses = new THREE.Group();
+				for (var i = 0; i < amount; i++) {
+					var curve = new THREE.EllipseCurve(0, 0, 20, 20, 0, 2 * Math.PI, false, 0);
+					var points = curve.getPoints(80);
+					var geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+					var material = new THREE.LineBasicMaterial();
+					var ellipse = new THREE.Line(geometry, material);
+
+					var color = new THREE.Color().setHSL(21 / 360, 0.17, randBetween(0.1, 0.6));
+					ellipse.material.color = color;
+
+					ellipse.scale.x = 1 + i / 100;
+					ellipse.scale.y = 0.9 + i / 30;
+					ellipse.scale.z = 1 + i / 100;
+
+					ellipses.add(ellipse);
+				}
+
+				return ellipses;
+			}
+
+
+
+			// Help for eclipses
+			
+			function randBetween(min, max) {
+				return Math.random() * (max - min) + min;
+			}
+
+
+			
+			// Floor panel
+			
+			guiControls = new function() {
+			  this.color = floormaterial.color.getStyle();
+			};
+
+			gui = new dat.GUI({ autoPlace: false });
+			customContainer = document.getElementById('color-gui-container');
+			customContainer.appendChild(gui.domElement);
+			gui  
+				.addColor(guiControls, "color")
+				.listen()
+				.onChange(function(e) {
+					selected.material.color.setStyle(e);
+				  });
+
+
+			
+			// Acrobat panel
+			
+			function createPanel() {
+
+				panel = new dat.GUI( { width: 310 } );
+
+				folder1 = panel.addFolder( 'appear/dissapear' );
+				
+				folder2 = panel.addFolder( 'Acrobatics' );
+				
+
+
+				settings = {
+					'show acrobat': true,
+					
+					'raise right hand': function () {
+
+						executeCrossFade( balanceAction, deksiAction, 1.0 );
+						
+
+					},
+					'raise left hand': function () {
+
+						executeCrossFade( balanceAction, aristeroAction, 1.0 );
+						
+
+					},
+					
+					'raise leg': function () {
+
+						executeCrossFade( balanceAction, podiAction, 1.0 );
+
+					},
+					'back to balance': function () {
+
+                    if ( deksiWeight === 1 && balanceWeight === 0 && podiWeight === 0 && aristeroWeight === 0) {
+
+					      executeCrossFade( deksiAction, balanceAction, 1.0 );
+				    }
+				    if ( deksiWeight === 0 && balanceWeight === 0 && podiWeight === 1 && aristeroWeight === 0 ) {
+
+					executeCrossFade( podiAction, balanceAction, 1.0 );
+                    }
+					
+					if ( deksiWeight === 0 && balanceWeight === 0 && podiWeight === 0 && aristeroWeight === 1) {
+
+					executeCrossFade( aristeroAction, balanceAction, 1.0 );
+                    }
+				
+				},
+					
+				};
+
+				folder1.add( settings, 'show acrobat' ).onChange( showModel );
+				
+				crossFadeControls.push( folder2.add( settings, 'raise right hand' ) );
+				crossFadeControls.push( folder2.add( settings, 'raise left hand' ) );
+				crossFadeControls.push( folder2.add( settings, 'raise leg' ) );
+				crossFadeControls.push( folder2.add( settings, 'back to balance' ) );
+				
+				folder1.open();
+				folder2.open();
+				
+				crossFadeControls.forEach( function ( control ) {
+
+					control.classList1 = control.domElement.parentElement.parentElement.classList;
+					control.classList2 = control.domElement.previousElementSibling.classList;
+
+					control.setDisabled = function () {
+
+						control.classList1.add( 'no-pointer-events' );
+						control.classList2.add( 'control-disabled' );
+
+					};
+
+					control.setEnabled = function () {
+
+						control.classList1.remove( 'no-pointer-events' );
+						control.classList2.remove( 'control-disabled' );
+
+					};
+
+				} );
+
+			}
+
+			
+
+			function showModel( visibility ) {
+
+				model.visible = visibility;
+            }
+
+
+			function activateAllActions() {
+
+				setWeight( deksiAction, 0.0 );
+				setWeight( aristeroAction, 0.0 );
+				setWeight( balanceAction, 1.0 );
+				setWeight( podiAction, 0.0 );
+
+				actions.forEach( function ( action ) {
+
+					action.play();
+
+				} );
+
+			}
+
+
+			function executeCrossFade( startAction, endAction, duration ) {
+
+				// Not only the start action, but also the end action must get a weight of 1 before fading
+				// (concerning the start action this is already guaranteed in this place)
+
+				setWeight( endAction, 1 );
+				endAction.time = 0;
+
+				// Crossfade with warping - you can also try without warping by setting the third parameter to false
+
+				startAction.crossFadeTo( endAction, duration, true );
+
+			}
+			
+
+			// This function is needed, since animationAction.crossFadeTo() disables its start action and sets
+			// the start action's timeScale to ((start animation's duration) / (end animation's duration))
+
+			function setWeight( action, weight ) {
+
+				action.enabled = true;
+				action.setEffectiveTimeScale( 1 );
+				action.setEffectiveWeight( weight );
+
+			}
+			
+
+			// Called by the render loop
+
+			function updateCrossFadeControls() {
+
+				crossFadeControls.forEach( function ( control ) {
+
+					control.setDisabled();
+
+				} );
+
+				if ( deksiWeight === 1 && balanceWeight === 0 && podiWeight === 0 && aristeroWeight === 0 ) {
+
+					
+                    crossFadeControls[ 3 ].setEnabled();
+				}
+
+				if ( deksiWeight === 0 && balanceWeight === 1 && podiWeight === 0 && aristeroWeight === 0) {
+
+					crossFadeControls[ 0 ].setEnabled();
+					crossFadeControls[ 2 ].setEnabled();
+					crossFadeControls[ 1 ].setEnabled();
+
+				}
+
+				if ( deksiWeight === 0 && balanceWeight === 0 && podiWeight === 1 && aristeroWeight === 0) {
+
+					crossFadeControls[ 3 ].setEnabled();
+                    
+				}
+				
+				if ( deksiWeight === 0 && balanceWeight === 0 && podiWeight === 0 && aristeroWeight === 1) {
+
+					crossFadeControls[ 3 ].setEnabled();
+                    
+				}
+				
+				
+
+			}
+			
+			
+			
+			// Keyboard events
+			
+			function keyDown(event){
+				keyboard[event.keyCode] = true;
+			}
+
+			function keyUp(event){
+				keyboard[event.keyCode] = false;
+			}
+			
+			
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+
+			
+			function animate() {
+			
+				render();
+				
+				requestAnimationFrame( animate );	
+				
+			}
+
+
+			
+			function render() {
+	
+				// Render loop
+
+				deksiWeight = deksiAction.getEffectiveWeight();
+				balanceWeight = balanceAction.getEffectiveWeight();
+				podiWeight = podiAction.getEffectiveWeight();
+				aristeroWeight = aristeroAction.getEffectiveWeight();
+				
+
+				// Enable/disable crossfade controls according to current weight values
+
+				updateCrossFadeControls();
+
+
+				// Get the time elapsed since the last frame, used for mixer update (if not in single step mode)
+
+				var mixerUpdateDelta = clock.getDelta();
+				
+
+				// Update the animation mixer
+
+				mixer.update( mixerUpdateDelta );
+				
+				
+				
+				// Floor lights
+				
+				time = Date.now() * 0.00025;
+				d = 50;
+
+				light1.position.x = Math.sin( time * 0.7 ) * d;
+				light1.position.z = Math.cos( time * 0.3 ) * d;
+
+				light2.position.x = Math.cos( time * 0.3 ) * d;
+				light2.position.z = Math.sin( time * 0.7 ) * d;
+
+				light3.position.x = Math.sin( time * 0.7 ) * d;
+				light3.position.z = Math.sin( time * 0.5 ) * d;
+
+				light4.position.x = Math.sin( time * 0.3 ) * d;
+				light4.position.z = Math.sin( time * 0.5 ) * d;
+
+				light5.position.x = Math.cos( time * 0.3 ) * d;
+				light5.position.z = Math.sin( time * 0.5 ) * d;
+
+				light6.position.x = Math.cos( time * 0.7 ) * d;
+				light6.position.z = Math.cos( time * 0.5 ) * d;
+				
+			
+			
+				// Sphere
+				
+				timer = Date.now() * 0.01;
+				smallSphere.position.set(
+					Math.cos( timer * 0.1 ) * 20,  //circle
+					Math.abs( Math.cos( timer * 0.2 ) ) * 5, //height
+					Math.sin( timer * 0.1 ) * 20  //radius
+				);
+				smallSphere.rotation.y = ( Math.PI / 2 ) - timer * 0.1;
+				smallSphere.rotation.z = timer * 0.4;
+				
+
+
+				// wasd keyboard
+				
+				if(keyboard[87]){ // W key
+					camera.position.x += Math.sin(camera.rotation.y) * player.speed;
+					camera.position.z += -Math.cos(camera.rotation.y) * player.speed;
+				}
+				if(keyboard[83]){ // S key
+					camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
+					camera.position.z -= -Math.cos(camera.rotation.y) * player.speed;
+				}
+				if(keyboard[65]){ // A key
+					camera.position.x -= Math.sin(camera.rotation.y + Math.PI/2) * player.speed;
+					camera.position.z -= -Math.cos(camera.rotation.y + Math.PI/2) * player.speed;
+				}
+				if(keyboard[68]){ // D key
+					camera.position.x -= Math.sin(camera.rotation.y - Math.PI/2) * player.speed;
+					camera.position.z -= -Math.cos(camera.rotation.y - Math.PI/2) * player.speed;
+				}
+				
+				
+				
+				// Arrows keyboard
+				
+				if(keyboard[37]){ //left
+					Saturn.position.x -= speedSaturn
+				}
+				if(keyboard[39]){ //right
+					Saturn.position.x += speedSaturn
+				}
+				if(keyboard[40]){ // front
+					Saturn.position.z += speedSaturn
+				}
+				if(keyboard[38]){ // back
+					Saturn.position.z -= speedSaturn
+				}
+
+				renderer.clear();
+				renderer.render( scene, camera );
+
+			}
+			
+
+		</script>
+
+	</body>
+</html>
